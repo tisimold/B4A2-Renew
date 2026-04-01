@@ -48,6 +48,19 @@ def find_button_xpath(sb, keyword):
     except:
         return None
 
+def click_button_by_text(sb, keyword):
+    """找到包含关键字的按钮并用 JS click 点击，避免 UC 模式 arguments 问题"""
+    buttons = sb.find_elements("button")
+    for i, btn in enumerate(buttons):
+        if keyword.lower() in btn.text.lower():
+            sb.execute_script(
+                "var btns = document.querySelectorAll('button');"
+                f"btns[{i}].scrollIntoView(true);"
+                f"btns[{i}].click();"
+            )
+            return True
+    return False
+
 def run():
     with SB(uc=True, headless=True, proxy=PROXY) as sb:
 
@@ -65,26 +78,29 @@ def run():
 
         # ── 点击 Continue 按钮（精确匹配，避免点到 Continue with Google）──
         print("Looking for Continue button...")
-        continue_btn = find_button_exact_text(sb, "continue")
+        clicked = click_button_by_text(sb, "continue")
+        # 但要排除 "Continue with Google/Github"，用精确匹配重新实现
+        # 重写：精确匹配 JS 点击
+        buttons = sb.find_elements("button")
+        continue_index = None
+        for i, btn in enumerate(buttons):
+            if btn.text.strip().lower() == "continue":
+                continue_index = i
+                break
 
-        if continue_btn is None:
-            print("Exact match failed, trying XPath exact match fallback...")
-            try:
-                continue_btn = sb.find_element(
-                    '//button[translate(normalize-space(text()),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="continue"]'
-                )
-            except:
-                pass
-
-        if continue_btn is None:
+        if continue_index is None:
             sb.save_screenshot("login_failed.png")
-            msg = "❌ 未找到 Continue 登录按钮，请查看截图"
+            msg = "❌ 未找到精确匹配的 Continue 登录按钮，请查看截图"
             print(msg)
             notify(msg)
             raise Exception(msg)
 
-        print(f"Clicking login button: '{continue_btn.text.strip()}'")
-        continue_btn.click()
+        print(f"Clicking Continue button at index {continue_index}...")
+        sb.execute_script(
+            "var btns = document.querySelectorAll('button');"
+            f"btns[{continue_index}].scrollIntoView(true);"
+            f"btns[{continue_index}].click();"
+        )
         sb.sleep(5)
 
         # ── 登录结果判断 ──
@@ -117,30 +133,47 @@ def run():
         print("Successfully reached target app page.")
 
         # 滚动到底部确保左下角按钮渲染
-        sb.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        sb.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         sb.sleep(2)
 
         # 截图留档
         sb.save_screenshot("before_click.png")
         print("Screenshot saved: before_click.png")
 
-        # ── 查找 Redeploy App 按钮 ──
-        redeploy_btn = find_button_by_text(sb, "redeploy")
-        if redeploy_btn is None:
-            print("Text match failed, trying XPath fallback...")
-            redeploy_btn = find_button_xpath(sb, "redeploy")
+        # ── 查找并点击 Redeploy App 按钮 ──
+        buttons = sb.find_elements("button")
+        redeploy_index = None
+        redeploy_text = None
+        for i, btn in enumerate(buttons):
+            if "redeploy" in btn.text.lower():
+                redeploy_index = i
+                redeploy_text = btn.text.strip()
+                break
 
-        if redeploy_btn is None:
+        if redeploy_index is None:
+            # XPath 兜底查找
+            try:
+                all_btns = sb.find_elements("button")
+                for i, btn in enumerate(all_btns):
+                    if "redeploy" in btn.text.lower():
+                        redeploy_index = i
+                        redeploy_text = btn.text.strip()
+                        break
+            except:
+                pass
+
+        if redeploy_index is None:
             msg = "❌ 未找到 Redeploy App 按钮，可能当前无需部署或页面结构已变化"
             print(msg)
             notify(msg)
             raise Exception(msg)
 
-        # ── 滚动到按钮位置并点击 ──
-        print(f"Found button: '{redeploy_btn.text}', clicking...")
-        sb.execute_script("arguments[0].scrollIntoView(true);", redeploy_btn)
-        sb.sleep(1)
-        redeploy_btn.click()
+        print(f"Found button: '{redeploy_text}' at index {redeploy_index}, clicking...")
+        sb.execute_script(
+            "var btns = document.querySelectorAll('button');"
+            f"btns[{redeploy_index}].scrollIntoView(true);"
+            f"btns[{redeploy_index}].click();"
+        )
 
         # ── 点击后确认：等待 Redeploy 按钮消失 ──
         click_confirmed = False
