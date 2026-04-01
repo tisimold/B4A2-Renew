@@ -41,6 +41,9 @@ def update_github_secret(secret_name, secret_value):
             headers=headers,
             timeout=10
         )
+        if pk_resp.status_code == 403:
+            print("❌ GH_TOKEN 权限不足，请确保 PAT 有 repo 或 secrets write 权限")
+            return False
         pk_resp.raise_for_status()
         pk_data = pk_resp.json()
 
@@ -58,6 +61,9 @@ def update_github_secret(secret_name, secret_value):
             },
             timeout=10
         )
+        if put_resp.status_code == 403:
+            print("❌ GH_TOKEN 权限不足，无法写入 secret")
+            return False
         put_resp.raise_for_status()
         print(f"GitHub secret '{secret_name}' updated successfully")
         return True
@@ -143,18 +149,31 @@ def run():
         sb.save_screenshot("before_click.png")
         print("Screenshot saved: before_click.png")
 
-        # ── 查找并点击 Redeploy App 按钮 ──
-        buttons = sb.find_elements("button")
+        # ── 查找并点击 Redeploy App 按钮（带刷新重试，最多12次，每次等待15秒）──
         redeploy_index = None
         redeploy_text = None
-        for i, btn in enumerate(buttons):
-            if "redeploy" in btn.text.lower():
-                redeploy_index = i
-                redeploy_text = btn.text.strip()
+        max_retries = 12
+        retry_interval = 15  # 秒
+
+        for attempt in range(max_retries):
+            buttons = sb.find_elements("button")
+            for i, btn in enumerate(buttons):
+                if "redeploy" in btn.text.lower():
+                    redeploy_index = i
+                    redeploy_text = btn.text.strip()
+                    break
+
+            if redeploy_index is not None:
                 break
 
+            if attempt < max_retries - 1:
+                print(f"Redeploy button not found, refreshing in {retry_interval}s... (attempt {attempt+1}/{max_retries})")
+                sb.sleep(retry_interval)
+                sb.refresh()
+                sb.sleep(3)
+
         if redeploy_index is None:
-            msg = "❌ 未找到 Redeploy App 按钮，可能当前无需部署或页面结构已变化"
+            msg = "❌ 未找到 Redeploy App 按钮，已重试 12 次（约3分钟），可能当前无需部署或页面结构已变化"
             print(msg)
             notify(msg)
             raise Exception(msg)
