@@ -2,8 +2,8 @@ name: B4A Auto Redeploy
 
 on:
   schedule:
-    - cron: '55 23 * * *'
-    - cron: '55 0-14 * * *'  # 每60分钟
+  *  - cron: '55 23 * * *'
+  *  - cron: '55 0-14 * * *'  # 每60分钟
   workflow_dispatch:
   repository_dispatch:
     types: [googlecloud-trigger]   # 必须和 event_type 完全一致
