@@ -84,16 +84,16 @@ def run():
         sb.open("https://containers.back4app.com")
         sb.sleep(2)
 
-        # 注入 connect.sid cookie
-        sb.driver.add_cookie({
+        # 用 CDP Network.setCookie 注入，避免 domain mismatch 问题
+        sb.driver.execute_cdp_cmd("Network.setCookie", {
             "name": "connect.sid",
             "value": CONNECT_SID,
-            "domain": "containers.back4app.com",
+            "url": "https://containers.back4app.com",
             "path": "/",
             "secure": True,
             "httpOnly": True
         })
-        print("Cookie injected, navigating to app page...")
+        print("Cookie injected via CDP, navigating to app page...")
 
         # ── 跳转到目标 App 页面 ──
         sb.open(APP_URL)
