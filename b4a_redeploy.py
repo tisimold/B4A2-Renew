@@ -12,7 +12,7 @@ GH_REPO = os.environ.get("GITHUB_REPOSITORY", "")
 TG_TOKEN = os.environ.get("TG_TOKEN", "")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "")
 
-APP_ID = "90148b3e-2353-459f-a1f8-e34377e389bc"
+APP_ID = "f7ba0b0c-adf6-4f8d-a5b5-7b713fe2ff1c"
 APP_URL = f"https://containers.back4app.com/apps/{APP_ID}"
 PROXY = "http://127.0.0.1:8080"
 
