@@ -11,6 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # =========================
+      # 🟡 ⭐ 私有仓库
+      # =========================
+      - name: Checkout private repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/BforA2-Auto
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: scripts
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -41,11 +51,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: python b4a_redeploy.py
+        run: python scripts/b4a_redeploy.py
 
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
-          path: "*.png"
+          path: "scripts/*.png"
