@@ -2,7 +2,7 @@ name: B4A Auto Redeploy
 
 on:
   repository_dispatch:
-    types: [googlecloud-trigger]   # 必须和 event_type 完全一致
+    *types: [googlecloud-trigger]   # 必须和 event_type 完全一致
   workflow_dispatch:
 
 jobs:
